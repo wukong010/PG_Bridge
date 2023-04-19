@@ -9,13 +9,13 @@ export default {
       lang: 'en'
     },
     meta: [
-      { charset: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: '' },
-      { name: 'format-detection', content: 'telephone=no' }
+      {charset: 'utf-8'},
+      {name: 'viewport', content: 'width=device-width, initial-scale=1'},
+      {hid: 'description', name: 'description', content: ''},
+      {name: 'format-detection', content: 'telephone=no'}
     ],
     link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
+      {rel: 'icon', type: 'image/x-icon', href: '/favicon.ico'}
     ]
   },
 
@@ -27,7 +27,7 @@ export default {
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
     '@/plugins/element-ui',
-    { src: '~/plugins/vue-ls.js', ssr: false },
+    {src: '~/plugins/vue-ls.js', ssr: false}
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -36,19 +36,46 @@ export default {
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
     '@nuxtjs/style-resources',
+    'nuxt-windicss'
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     // '~/store',
+    'nuxt-i18n'
   ],
-
+  i18n: {
+    locales: [
+      {
+        code: 'en',
+        name: 'English',
+        iso: 'en-US'
+      },
+      {
+        code: 'zh',
+        name: '中文',
+        iso: 'zh-CN'
+      }
+    ],
+    defaultLocale: 'en',
+    vueI18n: {
+      fallbackLocale: 'en',
+      messages: {
+        en: {
+          welcome: 'Welcome to my website!'
+        },
+        zh: {
+          welcome: '欢迎来到我的网站！'
+        }
+      }
+    }
+  },
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
-    transpile: [/^element-ui/],
+    transpile: [/^element-ui/]
   },
 
   styleResources: {
-    less: ['./assets/less/*.less'],
-  },
+    less: ['./assets/less/*.less']
+  }
 }

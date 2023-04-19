@@ -8,10 +8,27 @@
       <a href="">节点预选</a>
       <a href="">跨链桥</a>
     </div>
-    <div class="connect-btn" @click="_enable">
-      <img src="/icon-wallet@2x.png" alt="">
-      <span>{{ address ? `0x...${address.slice(-4)}` : '连接钱包' }}</span>
+    <div class="flex items-center">
+      <div class="connect-btn" @click="_enable">
+        <img src="/icon-wallet@2x.png" alt="">
+        <span>{{ address ? `0x...${address.slice(-4)}` : '连接钱包' }}</span>
+      </div>
+      <el-popover
+        placement="bottom"
+        :visible-arrow="false"
+        trigger="hover"
+        v-model="visible">
+        <div>
+          <div class="py-8px cursor-pointer hover:text-[#1263F1] transition duration-300" @click="changeLang('en')">English</div>
+          <div class="py-8px cursor-pointer hover:text-[#1263F1] transition duration-300" @click="changeLang('zh')">简体中文</div>
+        </div>
+        <div class="cursor-pointer" slot="reference">
+          <img class="w-22px h-22px ml-8px" src="@/static/zh-cn.png" alt="" v-if="locale == 'zh'">
+          <img class="w-22px h-22px ml-8px" src="@/static/en.png" alt="" v-if="locale == 'en'">
+        </div>
+      </el-popover>
     </div>
+<!--    <div @click="changeLang('en')">English</div>-->
   </header>
 </template>
 
@@ -22,11 +39,15 @@ export default {
   data() {
     return {
       web3: null,
+      visible: false,
     }
   },
   computed: {
     address() {
       return this.$store.state.address
+    },
+    locale() {
+      return this.$store.state.locale
     }
   },
   mounted() {
@@ -58,6 +79,11 @@ export default {
     });
   },
   methods: {
+    changeLang(val) {
+      this.$store.commit('setState', {key: 'locale', val})
+      this.$i18n.locale = val
+      this.visible = false
+    },
     async _enable() {
       if (this.address) {
         this._logout()

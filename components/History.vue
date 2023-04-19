@@ -3,7 +3,19 @@ export default {
   data() {
     return {
       total: 0,
-      historyData: [],
+    }
+  },
+  computed: {
+    statusEnum() {
+      return {
+        'ExchangedDone': '已完成',
+        'BorrowAmountDone': '已完成',
+        'BadHandlerDone': '已完成',
+        'Unused': '处理中',
+      }
+    },
+    historyData() {
+      return this.$store.state.history
     }
   }
 }
@@ -13,28 +25,32 @@ export default {
   <div class="history">
     <p class="history-title">历史记录</p>
     <el-card class="history-card">
-      <el-table
-        :data="historyData"
-        style="width: 100%">
+      <el-table :data="historyData" size="small">
         <el-table-column
-          prop="date"
-          label="TO">
+          prop="from"
+          label="来源网络">
         </el-table-column>
         <el-table-column
-          prop="name"
-          label="币种">
+          prop="to"
+          label="目标网络">
         </el-table-column>
         <el-table-column
-          prop="address"
-          label="金额">
+          prop="fromAddress"
+          label="发起地址">
         </el-table-column>
         <el-table-column
-          prop="address"
-          label="状态">
+          prop="toAddress"
+          label="接收地址">
         </el-table-column>
         <el-table-column
-          prop="address"
-          label="Txid">
+          prop="amount"
+          label="交易数量">
+        </el-table-column>
+        <el-table-column label="状态">
+          <template slot-scope="{row}">
+            <span class="text-success" v-if="row.status == 'ExchangedDone' || row.status == 'BorrowAmountDone' || row.status == 'BadHandlerDone'">{{statusEnum[row.status]}}</span>
+            <span class="text-warning" v-if="row.status == 'Unused'">{{statusEnum[row.status]}}</span>
+          </template>
         </el-table-column>
       </el-table>
 
@@ -50,6 +66,12 @@ export default {
 </template>
 
 <style lang="less">
+.text-success {
+  color: #67C23A;
+}
+.text-warning {
+  color: #E6A23C;
+}
 .history-card {
   border-radius: 10px;
 }

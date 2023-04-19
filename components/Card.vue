@@ -70,7 +70,7 @@ export default {
         '38545': 'BSC',
       },
       address: '',
-      chainTokenEunm: {
+      chainTokenEnum: {
         '10240': 'PG',
         '18545': 'HOST',
         '38545': 'BSC',
@@ -81,6 +81,7 @@ export default {
         feel3: 0,
       },
       loading: false,
+      page: 1,
     }
   },
   computed: {
@@ -125,36 +126,37 @@ export default {
       this.toAccount = this.fromAccount
     }
   },
-  async created() {
+  created() {
     // const injectionWeb3 = new Web3(new Web3.providers.HttpProvider('http://l3test.org:18545'));
     const injectionWeb3 = new Web3(window.ethereum);
     this.injectionWeb3 = injectionWeb3
 
     window.ethereum.on('chainChanged', chainId => {
-      // const hexChainId = web3.utils.toNumber(chainId);
-      // this.$store.commit('setState', {key: 'chainId', val: hexChainId})
-      this.getParis()
-      this.updateTokenBalance()
+      this.currentCurrencyIndex = 0
+      this._initRouter()
+      this.$store.commit('setState', {key: 'history', val: []})
+      this.getExchangeHistory()
     });
 
-    // 获取Pair信息
-    const generatedDatas = await ExchangePairsGenerater(exchangeConfig);
-    this.generatedDatas = generatedDatas
-    // 创建Router
-    let router = new ExchangeRouter({
-      ...exchangeConfig,
-      l3chain,
-      generatedDatas,
-    });
-    this.router = router
-    this.getParis()
-    this.updateTokenBalance()
+    this._initRouter()
   },
   methods: {
-    getParis() {
+    async _initRouter() {
+      // 获取Pair信息
+      const generatedDatas = await ExchangePairsGenerater(exchangeConfig);
+      this.generatedDatas = generatedDatas
+      // 创建Router
+      this.router = new ExchangeRouter({
+        ...exchangeConfig,
+        l3chain,
+        generatedDatas,
+      })
       // 获取Exchagne支持的所有Pair
-      let hostPairs = this.router.supportExchangePairs(this.fromChain);
-      this.hostPairs = hostPairs
+      this.hostPairs = this.router.supportExchangePairs(this.fromChain)
+
+      this.updateTokenBalance()
+      this.getThreshold()
+      // this.getExchangeHistory()
     },
     updateTokenBalance() {
       this.$store.dispatch('getTokenBalance', this.fromToken?.tokenAddress || 0)
@@ -177,7 +179,6 @@ export default {
       }
       let gas = await txSender.estimateGas(data)
       console.log(`tokenExchangeToChain gas: ${gas}`);
-      this.loading = true
       let callret = await txSender.call({
         from: this.fromAccount,
         value: toBN(this.fees.feeAmount.toString()).add(
@@ -208,6 +209,7 @@ export default {
       // console.log(`tokenExchangeToChain call: ${callret.toString()}`)
     },
     async approve() {
+      this.loading = true
       // 使用Web3创建合约交互实例
       let fromTokenContract = new this.injectionWeb3.eth.Contract(ABI.ERC20, this.usePair.metaData.tokenAddress);
       const spender = this.router.contractAddress[this.fromChain]
@@ -224,35 +226,50 @@ export default {
         }).then(() => {
           console.log(`Approve Router Successed`);
           this.exchange()
+        }).catch(err => {
+          this.loading = true
         })
       }
     },
     async getExchangeHistory() {
-      // 获取交易记录
-      // 更多查询条件: http://l3test.org:8000/subgraphs/name/l3/exchange_host
       let exchangeHistory = await this.router.selectExchangeHistory(this.fromChain, {
         first: 10,
+        skip: (this.page - 1) * 10,
         orderBy: "time",
         orderDirection: "asc",
         where: {
-          fromAccount: accounts[0]
+          fromAccount: this.fromAccount,
         }
       })
-
+      console.log(222, exchangeHistory);
+      let arr = []
       for (let record of exchangeHistory) {
-        let infos = [
-          `${ChainNameFromIdentifier(record.from.chainIdentifier)}-${record.from.tokenSymbol}`,
-          '/',
-          `${ChainNameFromIdentifier(record.to.chainIdentifier)}-${record.to.tokenSymbol}`,
-          " ",
-          record.from.account,
-          ` -> `,
-          record.to.account,
-          ` : ${fromWei(record.amount)}`,
-          ` (${(await this.router.getExchangeHistoryState(record)).toString()})`
-        ]
-        console.log(infos.join(''));
+        arr.push({
+          from: `${ChainNameFromIdentifier(record.from.chainIdentifier)}-${record.from.tokenSymbol}`,
+          to: `${ChainNameFromIdentifier(record.to.chainIdentifier)}-${record.to.tokenSymbol}`,
+          fromAddress: `0x...${record.from.account.slice(-4)}`,
+          toAddress: `0x...${record.to.account.slice(-4)}`,
+          amount: fromWei(record.amount),
+          status: (await this.router.getExchangeHistoryState(record)).toString(),
+        })
       }
+      this.$store.commit('setState', {key: 'history', val: arr})
+    },
+    async getThreshold() {
+      let exchangeAmount = '100.1231231';
+
+      // let exchangeAmountDecimals = parseFloat(exchangeAmount).toString().split('.')[1].length;
+
+      // let exchangeAmountWei = toBN(Math.floor(parseFloat(exchangeAmount) * 10 ** exchangeAmountDecimals)).mul(toBN(10).pow(this.usePair._metaData.tokenDecimals.decimals - exchangeAmountDecimals));
+
+      let feeAdditional = await this.router.feeAdditionalOf(this.usePair)
+
+      console.log(feeAdditional);
+
+      // let fee2 = exchangeAmountWei.gt(feeAdditional.thresholdAmount)
+      //   ? exchangeAmountWei.mul(feeAdditional.rateWei).div(toBN(1e12))
+      //   : toBN(0)
+      // console.log(fee2);
     },
     openExpertMode() {
       this.expert_mode = true
@@ -269,6 +286,7 @@ export default {
       this.currentCurrencyIndex = index
       this.currencyPopover = false
       this.updateTokenBalance()
+      // this.getExchangeHistory()
     },
     tapChain(index) {
       this.chainIndex = index
@@ -419,7 +437,7 @@ export default {
       </div>
       <div class="card-info__row">
         <span>验证节点GAS Fee</span>
-        <span>{{ feesFormat.feel3 }} {{chainTokenEunm[chainId] || '--'}}</span>
+        <span>{{ feesFormat.feel3 }} {{chainTokenEnum[chainId] || '--'}}</span>
       </div>
       <div class="card-info__row">
         <span>大额跨链手续费</span>

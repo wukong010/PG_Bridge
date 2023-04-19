@@ -11,6 +11,8 @@ export const state = () => ({
   balance: Vue.ls.get('balance'),
   hostPairs: Vue.ls.get('hostPairs'),
   tokenBalance: Vue.ls.get('tokenBalance'),
+  locale: Vue.ls.get('locale') || 'en',
+  history: [],
 })
 
 export const mutations = {
