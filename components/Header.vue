@@ -95,6 +95,7 @@ export default {
       }
     },
     getBalance() {
+      if (!this.address) return
       this.web3.eth.getBalance(this.address).then(balance => {
         this.$store.commit('setState', {key: 'balance', val: this.web3.utils.fromWei(balance)})
       })

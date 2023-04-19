@@ -159,6 +159,7 @@ export default {
       // this.getExchangeHistory()
     },
     updateTokenBalance() {
+      if (!this.fromAccount) return
       this.$store.dispatch('getTokenBalance', this.fromToken?.tokenAddress || 0)
     },
     async exchange() {
