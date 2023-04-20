@@ -5,6 +5,7 @@ import {ABI, ExchangePairsGenerater, ExchangeRouter} from "@l3exchange/sdk";
 import {fromWei, toBN, toWei} from "web3-utils";
 import _ from 'lodash';
 import NP from 'number-precision';
+import eventBus from '~/plugins/event-bus'
 
 const exchangeConfig = {
   graphQL: {
@@ -60,9 +61,9 @@ export default {
       generatedDatas: null,
       chainPopover: false,
       networkName: {
-        '0x0000000000000000000000000000000000000000000000000000000000000000': 'PG Network',
-        '0xe1430158eac8c4aa6a515be5ef2c576a7a9559adbd0c276cd9573854e0473494': 'Ethereum Network Main',
-        '0xe1430158eac8c4aa6a515be5ef2c576a7a9559adbd0c276cd9573854e0473499': 'BNB Smart Chain',
+        '0x0000000000000000000000000000000000000000000000000000000000000000': 'PG',
+        '0xe1430158eac8c4aa6a515be5ef2c576a7a9559adbd0c276cd9573854e0473494': 'Ethereum',
+        '0xe1430158eac8c4aa6a515be5ef2c576a7a9559adbd0c276cd9573854e0473499': 'BNB',
       },
       chainEunm: {
         '10240': 'PG',
@@ -82,6 +83,10 @@ export default {
       },
       loading: false,
       page: 1,
+      feeAdditional: {
+        rate: 0,
+        thresholdAmount: 0
+      },
     }
   },
   computed: {
@@ -127,15 +132,16 @@ export default {
     }
   },
   created() {
+    eventBus.$on('connection', () => {})
     // const injectionWeb3 = new Web3(new Web3.providers.HttpProvider('http://l3test.org:18545'));
-    const injectionWeb3 = new Web3(window.ethereum);
+    const injectionWeb3 = new Web3(window.ethereum)
     this.injectionWeb3 = injectionWeb3
 
     window.ethereum.on('chainChanged', chainId => {
+      this.page = 1
       this.currentCurrencyIndex = 0
       this._initRouter()
       this.$store.commit('setState', {key: 'history', val: []})
-      this.getExchangeHistory()
     });
 
     this._initRouter()
@@ -151,12 +157,15 @@ export default {
         l3chain,
         generatedDatas,
       })
+      this.getHostPairs()
+    },
+    getHostPairs() {
       // 获取Exchagne支持的所有Pair
       this.hostPairs = this.router.supportExchangePairs(this.fromChain)
 
       this.updateTokenBalance()
       this.getThreshold()
-      // this.getExchangeHistory()
+      this.getExchangeHistory()
     },
     updateTokenBalance() {
       if (!this.fromAccount) return
@@ -194,13 +203,15 @@ export default {
           )
         }).then(res => {
           this.$notify({
-            title: '成功',
-            message: '您的交易已执行完成。',
+            title: this.$t('success'),
+            message: this.$t('your_transaction_has_been_executed_successfully'),
             type: 'success'
           })
           this.loading = false
           this.updateTokenBalance()
           this.amount = ''
+          this.page = 1
+          this.getExchangeHistory()
         }).catch(err => {
           this.loading = false
         })
@@ -237,12 +248,11 @@ export default {
         first: 10,
         skip: (this.page - 1) * 10,
         orderBy: "time",
-        orderDirection: "asc",
+        orderDirection: "desc",
         where: {
           fromAccount: this.fromAccount,
         }
       })
-      console.log(222, exchangeHistory);
       let arr = []
       for (let record of exchangeHistory) {
         arr.push({
@@ -257,20 +267,9 @@ export default {
       this.$store.commit('setState', {key: 'history', val: arr})
     },
     async getThreshold() {
-      let exchangeAmount = '100.1231231';
-
-      // let exchangeAmountDecimals = parseFloat(exchangeAmount).toString().split('.')[1].length;
-
-      // let exchangeAmountWei = toBN(Math.floor(parseFloat(exchangeAmount) * 10 ** exchangeAmountDecimals)).mul(toBN(10).pow(this.usePair._metaData.tokenDecimals.decimals - exchangeAmountDecimals));
-
       let feeAdditional = await this.router.feeAdditionalOf(this.usePair)
-
-      console.log(feeAdditional);
-
-      // let fee2 = exchangeAmountWei.gt(feeAdditional.thresholdAmount)
-      //   ? exchangeAmountWei.mul(feeAdditional.rateWei).div(toBN(1e12))
-      //   : toBN(0)
-      // console.log(fee2);
+      this.feeAdditional = feeAdditional
+      this.feeAdditional.amount = NP.times(NP.divide(feeAdditional.rate, 100), NP.divide(feeAdditional.thresholdAmount, Math.pow(10, this.usePair._metaData.tokenDecimals)))
     },
     openExpertMode() {
       this.expert_mode = true
@@ -313,11 +312,9 @@ export default {
       return this.injectionWeb3.utils.fromWei(String(val), unit)
     },
     _getFee: _.debounce(function() {
-      console.log(typeof this.amount);
-      if (Number(this.amount) <= Number(this.tokenBalance)) {
+      if (this.amount && Number(this.amount) <= Number(this.tokenBalance)) {
         this.getFee()
       }
-      console.log('获取手续费');
     }, 1000),
   },
   watch: {
@@ -331,9 +328,9 @@ export default {
 </script>
 
 <template>
-  <div class="card">
+  <div class="card w-xl <sm:w-xs">
     <div class="coin-select__box">
-      <span>跨链币种</span>
+      <span>{{ $t('cross_chain_currency') }}</span>
 
       <el-popover
         popper-class="chain-row__left--popover"
@@ -344,7 +341,7 @@ export default {
         <div class="chain-select__box">
           <el-input
             class="mb-20"
-            placeholder="请输入币种名称"
+            :placeholder="$t('please_enter_the_name_of_the_currency')"
             prefix-icon="el-icon-search"
             v-model="coinName">
           </el-input>
@@ -366,7 +363,7 @@ export default {
       <div class="chain-row__left flex-2 br">
         <img class="chain-row__icon" src="/tokens/bnb-bnb-logo.png" alt="">
         <div class="chain-row__left--name">
-          <p>当前您连接的是</p>
+          <p>{{ $t('what_you_are_currently_connected_to_is') }}</p>
           <div>
             <span>{{chainEunm[chainId] || '--'}}</span>
           </div>
@@ -374,7 +371,7 @@ export default {
       </div>
 
       <div class="chain-row__input">
-        <p>余额：{{tokenBalance}}</p>
+        <p>{{ $t('balance') }}：{{tokenBalance || '--'}}</p>
         <div>
           <input type="number" placeholder="0" v-model="amount" @input="_getFee">
           <span @click="amount = tokenBalance">MAX</span>
@@ -399,12 +396,12 @@ export default {
             <span>{{networkName[item.etid.chainIdentifier]}}</span>
             <i class="el-icon-check" v-if="chainIndex == index"></i>
           </div>
-          <div class="chain-no__data" v-if="chainList.length === 0">暂时没有数据~</div>
+          <div class="chain-no__data" v-if="chainList.length === 0">{{ $t('no_data_available_at_the_moment') }}~</div>
         </div>
         <div slot="reference" class="chain-row__left pointer">
           <img class="chain-row__icon" src="/tokens/ethereum-eth-logo.png" alt="">
           <div class="chain-row__left--name">
-            <p>跨链至</p>
+            <p>{{ $t('cross_chain_to') }}</p>
             <div>
               <span>{{chainList.length ? networkName[chainList[chainIndex].etid.chainIdentifier] : '--'}}</span>
               <i class="el-icon-arrow-down"></i>
@@ -414,50 +411,50 @@ export default {
       </el-popover>
 
       <div class="chain-row__right">
-        <p>预计将获得</p>
+        <p>{{ $t('expected_to_obtain') }}</p>
         <p>{{obtainToken}}</p>
       </div>
     </div>
 
     <div class="address-input__box">
       <div class="address-input__head">
-        <span>接收地址</span>
+        <span>{{ $t('delivery_address') }}</span>
         <div @click.stop="closeExpertMode">
-          <span>专家模式</span>
+          <span>{{ $t('expert_mode') }}</span>
           <el-switch :value="expert_mode"></el-switch>
         </div>
       </div>
-      <input class="address-input" type="text" placeholder="请输入目标地址" v-model="toAccount" :disabled="!expert_mode">
-      <p class="address-input__tip">接收地址请勿填写交易所地址</p>
+      <input class="address-input" type="text" :placeholder="`${fromAccount ? $t('please_enter_the_destination_address') : $t('please_connect_your_wallet')}`" v-model="toAccount" :disabled="!expert_mode">
+      <p class="address-input__tip">{{ $t('please_do_not_fill_in_exchange_addresses_as_the_receiving_address') }}</p>
     </div>
 
     <div class="card-info">
       <div class="card-info__row">
-        <span>基础手续费</span>
+        <span>{{ $t('base_transaction_fee') }}</span>
         <span>{{ feesFormat.feeAmount }} {{chainEunm[chainId] || '--'}}</span>
       </div>
       <div class="card-info__row">
-        <span>验证节点GAS Fee</span>
+        <span>{{ $t('Verification_Node_GAS_Fee') }}</span>
         <span>{{ feesFormat.feel3 }} {{chainTokenEnum[chainId] || '--'}}</span>
       </div>
       <div class="card-info__row">
-        <span>大额跨链手续费</span>
+        <span>{{ $t('large_cross_chain_transaction_fee') }}</span>
         <span>{{ feesFormat.feeAdditionalAmount }} {{ fromToken ? fromToken.tokenSymbol : '--' }}</span>
       </div>
     </div>
     <div class="card-info__foot">
-      <p>*跨链数量超过 {0} 额外收取 {百分比数值} {{ fromToken ? fromToken.tokenSymbol : '--' }}</p>
-      <p>*收款地址请不要填写中心化交易所地址，由于跨链是合约交易，交易所无法入帐</p>
-      <p>*到账时间：1-600秒</p>
+      <p>*{{ $t('an_additional_will_be_charged_for_cross_chain_transactions_exceeding', {num: feeAdditional.thresholdAmount, rate: feeAdditional.amount, token: fromToken ? fromToken.tokenSymbol : '--'}) }}</p>
+      <p>*{{ $t('text') }}</p>
+      <p>*{{ $t('text1') }}</p>
     </div>
 
     <button type="button" class="swap-btn" :class="{'btn-disable': !btnDisable || loading}" :disabled="!btnDisable || loading" @click="approve">
       <i class="el-icon-loading" v-if="loading"></i>
-      <span>跨链兑换</span>
+      <span>{{ $t('cross_chain_exchange') }}</span>
     </button>
 
     <el-dialog
-      title="专家模式"
+      :title="$t('expert_mode')"
       custom-class="expert-dialog"
       :visible.sync="dialogVisible"
       :show-close="false"
@@ -465,12 +462,10 @@ export default {
       <div class="expert-dialog__content">
         <div class="expert-dialog__alert">
           <i class="el-icon-warning-outline"></i>
-          <div>
-            专家模式将允许您自定义跨链目标地址，错误的地址输入可能导致跨链桥智能合约无法处理您的请求，导致跨链无法执行。且转至错误目标地址的跨链资产无法追回，请您谨慎使用。
-          </div>
+          <div>{{ $t('text2') }}</div>
         </div>
-        <div class="expert-dialog__open" @click="openExpertMode">开启专家模式</div>
-        <div class="expert-dialog__cancel" @click="dialogVisible = false">取消</div>
+        <div class="expert-dialog__open" @click="openExpertMode">{{ $t('Enable_Expert_Mode') }}</div>
+        <div class="expert-dialog__cancel" @click="dialogVisible = false">{{ $t('cancel') }}</div>
       </div>
     </el-dialog>
   </div>

@@ -1,52 +1,62 @@
 <script>
+import eventBus from '~/plugins/event-bus'
 export default {
   data() {
     return {
       total: 0,
+      page: 1
     }
   },
   computed: {
     statusEnum() {
       return {
-        'ExchangedDone': '已完成',
-        'BorrowAmountDone': '已完成',
-        'BadHandlerDone': '已完成',
-        'Unused': '处理中',
+        'ExchangedDone': this.$t('completed'),
+        'BorrowAmountDone': this.$t('completed'),
+        'BadHandlerDone': this.$t('completed'),
+        'Unused': this.$t('processing'),
       }
     },
     historyData() {
-      return this.$store.state.history
+      return this.$store.state.history || []
+    }
+  },
+  methods: {
+    next() {
+      eventBus.$emit('chainChanged', 'next')
+    },
+    prev() {
+      eventBus.$emit('chainChanged', 'prev')
     }
   }
 }
 </script>
 
 <template>
-  <div class="history">
-    <p class="history-title">历史记录</p>
+  <div class="history w-xl <sm:w-xs">
+    <p class="history-title">{{ $t('historical_record') }}</p>
     <el-card class="history-card">
       <el-table :data="historyData" size="small">
         <el-table-column
           prop="from"
-          label="来源网络">
+          :label="$t('source')">
         </el-table-column>
         <el-table-column
           prop="to"
-          label="目标网络">
+          :label="$t('goal')">
         </el-table-column>
         <el-table-column
           prop="fromAddress"
-          label="发起地址">
+          :label="$t('source_address')">
         </el-table-column>
         <el-table-column
           prop="toAddress"
-          label="接收地址">
+          :label="$t('delivery_address')">
         </el-table-column>
         <el-table-column
           prop="amount"
-          label="交易数量">
+          :label="$t('quantity')">
         </el-table-column>
-        <el-table-column label="状态">
+        <el-table-column :label="$t('status')">
           <template slot-scope="{row}">
             <span class="text-success" v-if="row.status == 'ExchangedDone' || row.status == 'BorrowAmountDone' || row.status == 'BadHandlerDone'">{{statusEnum[row.status]}}</span>
             <span class="text-warning" v-if="row.status == 'Unused'">{{statusEnum[row.status]}}</span>
@@ -55,11 +65,8 @@ export default {
       </el-table>
 
       <div class="history-page__box">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="1000">
-        </el-pagination>
+        <el-button type="primary" icon="el-icon-arrow-left" size="small" :disabled="page == 1" @click="prev"></el-button>
+        <el-button type="primary" icon="el-icon-arrow-right" size="small" :disabled="historyData.length < 10" @click="next"></el-button>
       </div>
     </el-card>
   </div>
@@ -83,7 +90,6 @@ export default {
   margin: 24px 0 10px;
 }
 .history {
-  width: 548px;
   padding-bottom: 24px;
 }
 </style>

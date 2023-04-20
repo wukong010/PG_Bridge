@@ -27,7 +27,8 @@ export default {
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
     '@/plugins/element-ui',
-    {src: '~/plugins/vue-ls.js', ssr: false}
+    {src: '~/plugins/vue-ls.js', ssr: false},
+    {src: '~/plugins/event-bus.js', ssr: false}
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -41,7 +42,6 @@ export default {
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
-    // '~/store',
     'nuxt-i18n'
   ],
   i18n: {
@@ -49,33 +49,30 @@ export default {
       {
         code: 'en',
         name: 'English',
-        iso: 'en-US'
+        iso: 'en-US',
+        file: 'en-US.js'
       },
       {
         code: 'zh',
-        name: '中文',
-        iso: 'zh-CN'
+        name: '简体中文',
+        iso: 'zh-CN',
+        file: 'zh-CN.js'
       }
     ],
     defaultLocale: 'en',
     vueI18n: {
-      fallbackLocale: 'en',
-      messages: {
-        en: {
-          welcome: 'Welcome to my website!'
-        },
-        zh: {
-          welcome: '欢迎来到我的网站！'
-        }
-      }
-    }
+      fallbackLocale: 'en'
+    },
+    lazy: true,
+    langDir: 'lang/',
+    strategy: 'no_prefix'
+  },
+  vuex: {
+    moduleName: 'i18n',
+    syncLocale: true
   },
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
     transpile: [/^element-ui/]
-  },
-
-  styleResources: {
-    less: ['./assets/less/*.less']
   }
 }

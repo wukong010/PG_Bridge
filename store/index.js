@@ -11,7 +11,7 @@ export const state = () => ({
   balance: Vue.ls.get('balance'),
   hostPairs: Vue.ls.get('hostPairs'),
   tokenBalance: Vue.ls.get('tokenBalance'),
-  locale: Vue.ls.get('locale') || 'en',
+  connectionStatus: Vue.ls.get('connectionStatus') || false,
   history: [],
 })
 
@@ -20,6 +20,13 @@ export const mutations = {
     // console.log(key, val);
     state[key] = val
     Vue.ls.set(key, val)
+  },
+  resetState(state) {
+    Object.keys(state).forEach(key => {
+      if (key !== 'locale') {
+        state[key] = null
+      }
+    })
   }
 }
 

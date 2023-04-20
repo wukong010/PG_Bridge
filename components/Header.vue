@@ -1,17 +1,17 @@
 <template>
-  <header class="header">
-    <img class="logo" src="/logo.png" alt="">
-    <div class="menu-box">
-      <a href="">交易</a>
-      <a href="">流动性</a>
-      <a href="">龙场</a>
-      <a href="">节点预选</a>
-      <a href="">跨链桥</a>
+  <header class="header <sm:p-4 sm:(px-8 py-4)">
+    <img class="logo <sm:h-22px sm:h-38px" src="/logo.png" alt="">
+    <div class="menu-box <sm:hidden sm:flex">
+      <a href="">{{ $t('transaction') }}</a>
+      <a href="">{{ $t('liquidity') }}</a>
+      <a href="">{{ $t('farms') }}</a>
+      <a href="">{{ $t('nodes') }}</a>
+      <a href="">{{ $t('bridge') }}</a>
     </div>
     <div class="flex items-center">
       <div class="connect-btn" @click="_enable">
         <img src="/icon-wallet@2x.png" alt="">
-        <span>{{ address ? `0x...${address.slice(-4)}` : '连接钱包' }}</span>
+        <span>{{ address ? `0x...${address.slice(-4)}` : $t('connect_wallet') }}</span>
       </div>
       <el-popover
         placement="bottom"
@@ -28,12 +28,11 @@
         </div>
       </el-popover>
     </div>
-<!--    <div @click="changeLang('en')">English</div>-->
   </header>
 </template>
 
 <script>
-import Web3 from "web3";
+import Web3 from "web3"
 
 export default {
   data() {
@@ -47,7 +46,7 @@ export default {
       return this.$store.state.address
     },
     locale() {
-      return this.$store.state.locale
+      return this.$i18n.locale
     }
   },
   mounted() {
@@ -56,42 +55,43 @@ export default {
     this.web3 = web3
     this.getBalance()
     web3.eth.net.getId((error, chainId) => {
-      console.log(chainId);
       this.$store.commit('setState', {key: 'chainId', val: chainId})
     })
 
-    window.ethereum.on('accountsChanged', (accounts) => {
-      console.log(accounts);
-      if (accounts.length) {
-        const address = accounts[0];
-        this.$store.commit('setState', {key: 'address', val: address})
-      } else {
-        this.$store.commit('setState', {key: 'address', val: null})
-      }
-    });
-
     // 监听链的切换
     window.ethereum.on('chainChanged', chainId => {
-      const hexChainId = web3.utils.toNumber(chainId);
-      console.log(hexChainId);
+      const hexChainId = web3.utils.toNumber(chainId)
       this.$store.commit('setState', {key: 'chainId', val: hexChainId})
       this.getBalance()
-    });
+    })
   },
   methods: {
+    isWalletConnected() {
+      return window.ethereum.selectedAddress !== null
+    },
     changeLang(val) {
-      this.$store.commit('setState', {key: 'locale', val})
-      this.$i18n.locale = val
+      // this.$store.commit('setState', {key: 'locale', val})
+      // this.$i18n.locale = val
+      this.$i18n.setLocale(val).then(() => {
+        return false
+          // this.$router.push({ path: this.$route.path, query: this.$route.query })
+        })
       this.visible = false
     },
     async _enable() {
       if (this.address) {
         this._logout()
       } else {
-        await window.ethereum.enable();
-        // const accounts = await this.web3.eth.getAccounts();
-        // const address = accounts[0];
-        // this.$store.commit('setState', {key: 'address', val: address})
+        try {
+          if (this.isWalletConnected()) {
+            this.$store.commit('setState', {key: 'address', val: window.ethereum.selectedAddress})
+          } else {
+            // 请求用户授权连接钱包
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
+          }
+        } catch (err) {
+          console.log(err)
+        }
       }
     },
     getBalance() {
@@ -101,9 +101,8 @@ export default {
       })
     },
     _logout() {
-      // this.web3.eth.clearSubscriptions()
-      // this.web3.currentProvider.disconnect()
-      // this.$store.commit('setState', {key: 'address', val: null})
+      this.$store.commit('resetState')
+      this.$ls.clear()
     }
   }
 }
