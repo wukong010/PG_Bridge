@@ -106,10 +106,13 @@ export default {
       return this.hostPairs[this.currentCurrencyIndex] || null
     },
     obtainToken() {
-      return NP.minus(this.amount, this.feesFormat.feeAdditionalAmount)
+      return this.amount ? NP.minus(this.amount, this.feesFormat.feeAdditionalAmount) : 0
     },
     chainList() {
       if (this.usePair) {
+        // console.log(`------${this.currentCurrencyIndex}`, this.hostPairs)
+        // console.log(this.usePair.toExchangeTokenIds)
+        // console.log(this.generatedDatas)
         const targetPairs = this.usePair.toExchangeTokenIds.map(toETID => this.generatedDatas.find(
           e => e.etid.chainIdentifier == toETID.chainIdentifier
             && e.etid.shadowEmiter == toETID.shadowEmiter
@@ -124,6 +127,12 @@ export default {
     },
     btnDisable() {
       return Number(this.amount) > 0 && Number(this.amount) <= Number(this.tokenBalance)
+    },
+    amountToWei() {
+      const num1 = toBN(10)
+      const num2 = toBN(this.fromToken.tokenDecimals)
+      const num3 = toBN(num1 ** num2)
+      return this.amount ? toBN(this.amount).mul(num3).toString() : 0
     }
   },
   mounted() {
@@ -162,14 +171,14 @@ export default {
     getHostPairs() {
       // 获取Exchagne支持的所有Pair
       this.hostPairs = this.router.supportExchangePairs(this.fromChain)
-
+      // console.log(this.hostPairs)
       this.updateTokenBalance()
       this.getThreshold()
       this.getExchangeHistory()
     },
     updateTokenBalance() {
       if (!this.fromAccount) return
-      this.$store.dispatch('getTokenBalance', this.fromToken?.tokenAddress || 0)
+      this.$store.dispatch('getTokenBalance', {tokenAddress: this.fromToken?.tokenAddress, tokenDecimals: this.fromToken?.tokenDecimals})
     },
     async exchange() {
       // 发起交易,建立Router的合约交互实例
@@ -179,7 +188,7 @@ export default {
         this.usePair.metaData.etid,
         targetEtid,
         this.toAccount,
-        toWei(String(this.amount)),
+        this.amountToWei
       );
       const data = {
         from: this.fromAccount,
@@ -226,14 +235,13 @@ export default {
       let fromTokenContract = new this.injectionWeb3.eth.Contract(ABI.ERC20, this.usePair.metaData.tokenAddress);
       const spender = this.router.contractAddress[this.fromChain]
       const owner = this.fromAccount
-      const amount = this.injectionWeb3.utils.toWei(String(this.amount))
       // 查询授权额度
       const allowance = await fromTokenContract.methods.allowance(owner, spender).call();
-      console.log(allowance, amount);
-      if (allowance >= amount) {
+      // console.log(allowance, amount);
+      if (allowance >= this.amountToWei) {
         this.exchange()
       } else {
-        await fromTokenContract.methods.approve(spender, this.injectionWeb3.utils.toWei(String(this.amount))).send({
+        await fromTokenContract.methods.approve(spender, this.amountToWei).send({
           from: this.fromAccount,
         }).then(() => {
           console.log(`Approve Router Successed`);
@@ -251,6 +259,9 @@ export default {
         orderDirection: "desc",
         where: {
           fromAccount: this.fromAccount,
+          fromETID_: { 
+              // chainIdentifier: '${ChainIdentifier}'
+          }
         }
       })
       let arr = []
@@ -268,8 +279,13 @@ export default {
     },
     async getThreshold() {
       let feeAdditional = await this.router.feeAdditionalOf(this.usePair)
+      // console.log(feeAdditional)
+      const Decimals = Math.pow(10, this.usePair._metaData.tokenDecimals)
+      const number = NP.divide(feeAdditional.thresholdAmount, Decimals)
       this.feeAdditional = feeAdditional
-      this.feeAdditional.amount = NP.times(NP.divide(feeAdditional.rate, 100), NP.divide(feeAdditional.thresholdAmount, Math.pow(10, this.usePair._metaData.tokenDecimals)))
+      this.feeAdditional.amount = NP.times(feeAdditional.rate, number)
+      this.feeAdditional.number = number
+      this.feeAdditional.rate = NP.times(feeAdditional.rate, 100)
     },
     openExpertMode() {
       this.expert_mode = true
@@ -286,6 +302,7 @@ export default {
       this.currentCurrencyIndex = index
       this.currencyPopover = false
       this.updateTokenBalance()
+      this.getThreshold()
       // this.getExchangeHistory()
     },
     tapChain(index) {
@@ -306,7 +323,6 @@ export default {
         feeAdditionalAmount: this._fromWei(fees.feeAdditionalAmount),
         feel3: this._fromWei(fees.feel3),
       }
-      console.log(fees);
     },
     _fromWei(val, unit = 'ether') {
       return this.injectionWeb3.utils.fromWei(String(val), unit)
@@ -347,7 +363,7 @@ export default {
           </el-input>
           <div class="chain-select__item" v-for="(item, index) in hostPairs" :key="index" @click="tapCurrency(index)">
             <img src="/tokens/tether-usdt-logo.png" alt="">
-            <span>{{ item._metaData.tokenName }}</span>
+            <span>{{ item._metaData.tokenSymbol }}</span>
             <i class="el-icon-check" v-if="currentCurrencyIndex === index"></i>
           </div>
         </div>
@@ -358,7 +374,7 @@ export default {
         </div>
       </el-popover>
     </div>
-
+    
     <div class="chain-row">
       <div class="chain-row__left flex-2 br">
         <img class="chain-row__icon" src="/tokens/bnb-bnb-logo.png" alt="">
@@ -443,7 +459,7 @@ export default {
       </div>
     </div>
     <div class="card-info__foot">
-      <p>*{{ $t('an_additional_will_be_charged_for_cross_chain_transactions_exceeding', {num: feeAdditional.thresholdAmount, rate: feeAdditional.amount, token: fromToken ? fromToken.tokenSymbol : '--'}) }}</p>
+      <p>*{{ $t('an_additional_will_be_charged_for_cross_chain_transactions_exceeding', {num: feeAdditional.number, rate: feeAdditional.rate, token: fromToken ? fromToken.tokenSymbol : '--'}) }}</p>
       <p>*{{ $t('text') }}</p>
       <p>*{{ $t('text1') }}</p>
     </div>

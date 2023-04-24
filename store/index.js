@@ -2,6 +2,7 @@ import Vue from 'vue';
 import multicallABI from '~/static/abi/Multicall.json';
 import erc20ABI from '~/static/abi/erc20.json';
 import Web3 from 'web3'
+import { toBN } from 'web3-utils';
 
 const web3 = new Web3(window.ethereum)
 
@@ -31,14 +32,19 @@ export const mutations = {
 }
 
 export const actions = {
-  async getTokenBalance({commit, state}, tokenAddress) {
+  async getTokenBalance({commit, state}, {tokenAddress, tokenDecimals}) {
+    const num1 = toBN(10)
+    const num2 = toBN(tokenDecimals)
+    const num3 = toBN(num1 ** num2)
     // 实例化ERC20代币合约
     const tokenContract = new web3.eth.Contract(erc20ABI, tokenAddress);
     // 查询余额
     tokenContract.methods.balanceOf(state.address).call()
       .then((balance) => {
         console.log(`您的余额为：${balance}个代币`);
-        commit('setState', {'key': 'tokenBalance', val: web3.utils.fromWei(balance)})
+        const _balance = toBN(balance);
+        const val = _balance.div(num3).toString();
+        commit('setState', {'key': 'tokenBalance', val})
       })
       .catch((error) => {
         console.error(error);

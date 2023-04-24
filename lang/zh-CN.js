@@ -28,7 +28,7 @@ export default {
     base_transaction_fee: "基础手续费",
     Verification_Node_GAS_Fee: "验证节点GAS Fee",
     large_cross_chain_transaction_fee: "大额跨链手续费",
-    an_additional_will_be_charged_for_cross_chain_transactions_exceeding: "跨链数量超过 {num} 额外收取 {rate} {token}",
+    an_additional_will_be_charged_for_cross_chain_transactions_exceeding: "跨链数量超过 {num} 额外收取 {rate}% {token}",
     text: "收款地址请不要填写中心化交易所地址，由于跨链是合约交易，交易所无法入帐",
     text1: "到账时间：1-600秒",
     cross_chain_exchange: "跨链兑换",

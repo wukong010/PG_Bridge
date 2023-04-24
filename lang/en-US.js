@@ -28,7 +28,7 @@ export default {
     base_transaction_fee: "base transaction fee",
     Verification_Node_GAS_Fee: "Verification Node GAS Fee",
     large_cross_chain_transaction_fee: "large cross-chain transaction fee",
-    an_additional_will_be_charged_for_cross_chain_transactions_exceeding: "An additional {num} {rate} will be charged for cross-chain transactions exceeding {token}",
+    an_additional_will_be_charged_for_cross_chain_transactions_exceeding: "An additional {num} {rate}% will be charged for cross-chain transactions exceeding {token}",
     text: "Please do not fill in the centralized exchange address as the collection address, as cross-chain transactions are contract-based and cannot be credited to the exchange",
     text1: "Arrival time: 1-600 seconds",
     cross_chain_exchange: "cross-chain exchange",
