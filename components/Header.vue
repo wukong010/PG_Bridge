@@ -1,7 +1,7 @@
 <template>
   <header class="header <sm:p-4 sm:(px-8 py-4)">
     <img class="logo <sm:h-22px sm:h-38px" src="/logo.png" alt="">
-    <div class="menu-box <sm:hidden sm:flex">
+    <div class="menu-box <md:hidden sm:flex">
       <a href="">{{ $t('transaction') }}</a>
       <a href="">{{ $t('liquidity') }}</a>
       <a href="">{{ $t('farms') }}</a>

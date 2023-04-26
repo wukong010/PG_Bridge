@@ -46,6 +46,7 @@ export default {
   name: 'CardComponent',
   data() {
     return {
+      page_size: 5,
       expert_mode: false,
       dialogVisible: false,
       injectionWeb3: null,
@@ -142,9 +143,8 @@ export default {
   },
   created() {
     eventBus.$on('connection', () => {})
-    // const injectionWeb3 = new Web3(new Web3.providers.HttpProvider('http://l3test.org:18545'));
-    const injectionWeb3 = new Web3(window.ethereum)
-    this.injectionWeb3 = injectionWeb3
+    // this.injectionWeb3 = new Web3(new Web3.providers.HttpProvider('http://l3test.org:18545'));
+    this.injectionWeb3 = new Web3(window.ethereum)
 
     window.ethereum.on('chainChanged', chainId => {
       this.page = 1
@@ -253,8 +253,8 @@ export default {
     },
     async getExchangeHistory() {
       let exchangeHistory = await this.router.selectExchangeHistory(this.fromChain, {
-        first: 10,
-        skip: (this.page - 1) * 10,
+        first: this.page_size,
+        skip: (this.page - 1) * this.page_size,
         orderBy: "time",
         orderDirection: "desc",
         where: {
@@ -369,14 +369,14 @@ export default {
         </div>
         <div slot="reference" class="coin-select__content">
           <img class="coin-select__icon" src="/tokens/tether-usdt-logo.png" alt="">
-          <span>{{ hostPairs.length ? hostPairs[currentCurrencyIndex]._metaData.tokenName : '--' }}</span>
+          <span>{{ hostPairs.length ? hostPairs[currentCurrencyIndex]._metaData.tokenSymbol : '--' }}</span>
           <i class="el-icon-arrow-down"></i>
         </div>
       </el-popover>
     </div>
     
-    <div class="chain-row">
-      <div class="chain-row__left flex-2 br">
+    <div class="chain-row border <sm:flex-col">
+      <div class="chain-row__left flex-2 <sm:(border-b-1 pb-10px mb-10px) sm:(border-r-1 pr-10px)">
         <img class="chain-row__icon" src="/tokens/bnb-bnb-logo.png" alt="">
         <div class="chain-row__left--name">
           <p>{{ $t('what_you_are_currently_connected_to_is') }}</p>
@@ -386,7 +386,7 @@ export default {
         </div>
       </div>
 
-      <div class="chain-row__input">
+      <div class="chain-row__input sm:pl-10px">
         <p>{{ $t('balance') }}：{{tokenBalance || '--'}}</p>
         <div>
           <input type="number" placeholder="0" v-model="amount" @input="_getFee">
@@ -399,7 +399,7 @@ export default {
       <el-button icon="el-icon-sort" circle></el-button>
     </div>
 
-    <div class="chain-row mb-24">
+    <div class="chain-row border mb-24 <sm:flex-col">
       <el-popover
         v-model="chainPopover"
         popper-class="chain-row__left--popover"
@@ -414,7 +414,7 @@ export default {
           </div>
           <div class="chain-no__data" v-if="chainList.length === 0">{{ $t('no_data_available_at_the_moment') }}~</div>
         </div>
-        <div slot="reference" class="chain-row__left pointer">
+        <div slot="reference" class="chain-row__left pointer <sm:(border-b-1 pb-10px mb-10px)">
           <img class="chain-row__icon" src="/tokens/ethereum-eth-logo.png" alt="">
           <div class="chain-row__left--name">
             <p>{{ $t('cross_chain_to') }}</p>
@@ -426,9 +426,9 @@ export default {
         </div>
       </el-popover>
 
-      <div class="chain-row__right">
+      <div class="chain-row__right sm:(border-l-1 ml-10px)">
         <p>{{ $t('expected_to_obtain') }}</p>
-        <p>{{obtainToken}}</p>
+        <p>{{ obtainToken }}</p>
       </div>
     </div>
 
@@ -473,8 +473,7 @@ export default {
       :title="$t('expert_mode')"
       custom-class="expert-dialog"
       :visible.sync="dialogVisible"
-      :show-close="false"
-      width="460px">
+      :show-close="false">
       <div class="expert-dialog__content">
         <div class="expert-dialog__alert">
           <i class="el-icon-warning-outline"></i>

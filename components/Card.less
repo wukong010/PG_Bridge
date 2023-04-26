@@ -46,7 +46,6 @@
 }
 .chain-row__input {
   flex: 3;
-  padding-left: 10px;
   > div {
     display: flex;
     align-items: center;
@@ -64,7 +63,7 @@
       flex: 1;
       border: none;
       outline: none;
-      background: none;
+      background: transparent;
       padding-right: 10px;
       font-size: 16px;
       font-weight: 600;
@@ -82,6 +81,7 @@
 }
 .expert-dialog {
   border-radius: 20px;
+  width: 36rem;
   .expert-dialog__cancel {
     height: 52px;
     line-height: 52px;
@@ -153,7 +153,6 @@
 .chain-row__left {
   display: flex;
   align-items: center;
-  padding-right: 10px;
 }
 .mb-24 {
   margin-bottom: 24px;
@@ -161,13 +160,12 @@
 .chain-row {
   background: #F7F9FD;
   border-radius: 8px;
-  border: 1px solid #E4EBF8;
   padding: 14px 10px;
   display: flex;
   > span {
     flex: 2;
-    padding-right: 10px;
-    border-right: 1px solid #E4EBF8;
+    // padding-right: 10px;
+    // border-right: 1px solid #E4EBF8;
   }
 }
 .br {
@@ -304,5 +302,11 @@
   i {
     color: #333;
     margin-left: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .expert-dialog {
+    width: 20rem;
   }
 }

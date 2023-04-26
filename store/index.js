@@ -41,7 +41,7 @@ export const actions = {
     // 查询余额
     tokenContract.methods.balanceOf(state.address).call()
       .then((balance) => {
-        console.log(`您的余额为：${balance}个代币`);
+        console.log(`${tokenAddress}的余额为：${balance}个代币`);
         const _balance = toBN(balance);
         const val = _balance.div(num3).toString();
         commit('setState', {'key': 'tokenBalance', val})
